@@ -1,5 +1,5 @@
 check host node_web_app_<%= @application_name %> with address 127.0.0.1
-  start program = "/bin/echo '<%= @deploy[:deploy_to] %>' >> ~/test.txt;"
+  start program = "/bin/echo 'test echo' >> ~/test.txt;"
   stop program  = "/usr/bin/pkill -f 'node <%= @monitored_script %>'"
   if failed port 80 protocol HTTP
     request /
