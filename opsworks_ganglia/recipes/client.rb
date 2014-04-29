@@ -69,31 +69,6 @@ if node[:opsworks][:layers].has_key?('monitoring-master')
   include_recipe 'opsworks_ganglia::monitor-fd-and-sockets'
   include_recipe 'opsworks_ganglia::monitor-disk'
 
-<<<<<<< HEAD
-node[:opsworks][:instance][:layers].each do |layer|
-  case layer
-  when 'memcached'
-    include_recipe 'opsworks_ganglia::monitor-memcached'
-  when 'db-master'
-    include_recipe 'opsworks_ganglia::monitor-mysql'
-  when 'lb'
-    include_recipe 'opsworks_ganglia::monitor-haproxy'
-  when 'php-app','monitoring-master'
-    include_recipe 'opsworks_ganglia::monitor-apache'
-  when 'web'
-    include_recipe 'opsworks_ganglia::monitor-nginx'
-  when 'rails-app'
-
-    case node[:opsworks][:rails_stack][:name]
-    when 'apache_passenger'
-      include_recipe 'opsworks_ganglia::monitor-passenger'
-      include_recipe 'opsworks_ganglia::monitor-apache'
-    when 'nginx_unicorn'
-      include_recipe 'opsworks_ganglia::monitor-nginx'
-    end
-
-  end
-=======
   node[:opsworks][:instance][:layers].each do |layer|
     case layer
     when 'memcached'
@@ -120,5 +95,4 @@ node[:opsworks][:instance][:layers].each do |layer|
   end
 else
   Chef::Log.info 'No monitoring-master node found. Skipping Ganglia client setup.'
->>>>>>> FETCH_HEAD
 end
