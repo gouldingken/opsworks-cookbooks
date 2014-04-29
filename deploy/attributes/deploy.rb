@@ -1,8 +1,39 @@
+###
+# Do not use this file to override the deploy cookbook's default
+# attributes.  Instead, please use the customize.rb attributes file,
+# which will keep your adjustments separate from the AWS OpsWorks
+# codebase and make it easier to upgrade.
+#
+# However, you should not edit customize.rb directly. Instead, create
+# "deploy/attributes/customize.rb" in your cookbook repository and
+# put the overrides in YOUR customize.rb file.
+#
+# Do NOT create an 'deploy/attributes/deploy.rb' in your cookbooks. Doing so
+# would completely override this file and might cause upgrade issues.
+#
+# See also: http://docs.aws.amazon.com/opsworks/latest/userguide/customizing.html
+###
+
 include_attribute 'deploy::logrotate'
 include_attribute 'deploy::rails_stack'
 
+
 default[:opsworks][:deploy_user][:shell] = '/bin/bash'
 default[:opsworks][:deploy_user][:user] = 'deploy'
+default[:opsworks][:deploy_keep_releases] = 5
+
+# The deploy provider used. Set to one of
+# - "Branch"      - enables deploy_branch (Chef::Provider::Deploy::Branch)
+# - "Revision"    - enables deploy_revision (Chef::Provider::Deploy::Revision)
+# - "Timestamped" - enables deploy (default, Chef::Provider::Deploy::Timestamped)
+# Deploy provider can also be set at application level.
+default[:opsworks][:deploy_chef_provider] = 'Timestamped'
+
+valid_deploy_chef_providers = ['Timestamped', 'Revision', 'Branch']
+unless valid_deploy_chef_providers.include?(node[:opsworks][:deploy_chef_provider])
+  raise "Invalid deploy_chef_provider: #{node[:opsworks][:deploy_chef_provider]}. Valid providers: #{valid_deploy_chef_providers.join(', ')}."
+end
+
 # the $HOME of the deploy user can be overwritten with this variable.
 #default[:opsworks][:deploy_user][:home] = '/home/deploy'
 
@@ -18,8 +49,11 @@ default[:opsworks][:rails][:ignore_bundler_groups] = ['test', 'development']
 default[:deploy] = {}
 node[:deploy].each do |application, deploy|
   default[:deploy][application][:deploy_to] = "/srv/www/#{application}"
-  default[:deploy][application][:release] = Time.now.utc.strftime("%Y%m%d%H%M%S")
-  default[:deploy][application][:release_path] = "#{node[:deploy][application][:deploy_to]}/releases/#{node[:deploy][application][:release]}"
+  default[:deploy][application][:chef_provider] = node[:deploy][application][:chef_provider] ? node[:deploy][application][:chef_provider] : node[:opsworks][:deploy_chef_provider]
+  unless valid_deploy_chef_providers.include?(node[:deploy][application][:chef_provider])
+    raise "Invalid chef_provider '#{node[:deploy][application][:chef_provider]}' for app '#{application}'. Valid providers: #{valid_deploy_chef_providers.join(', ')}."
+  end
+  default[:deploy][application][:keep_releases] = node[:deploy][application][:keep_releases] ? node[:deploy][application][:keep_releases] : node[:opsworks][:deploy_keep_releases]
   default[:deploy][application][:current_path] = "#{node[:deploy][application][:deploy_to]}/current"
   default[:deploy][application][:document_root] = ''
   default[:deploy][application][:ignore_bundler_groups] = node[:opsworks][:rails][:ignore_bundler_groups]
@@ -76,3 +110,5 @@ node[:deploy].each do |application, deploy|
 end
 
 default[:opsworks][:skip_uninstall_of_other_rails_stack] = false
+
+include_attribute "deploy::customize"

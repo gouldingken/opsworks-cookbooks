@@ -37,10 +37,24 @@ service 'apache2' do
   action :enable
 end
 
-execute 'logdir_existence_and_restart_apache2' do
-  command "ls -la #{node[:apache][:log_dir]}"
+if platform?("debian","ubuntu")
+  execute "reset permission of #{node[:apache][:log_dir]}" do
+    command "chmod 0755 #{node[:apache][:log_dir]}"
+  end
+end
+
+bash 'logdir_existence_and_restart_apache2' do
+  code <<-EOF
+    until
+      ls -la #{node[:apache][:log_dir]}
+    do
+      echo "Waiting for #{node[:apache][:log_dir]}..."
+      sleep 1
+    done
+  EOF
   action :nothing
   notifies :restart, resources(:service => 'apache2')
+  timeout 30
 end
 
 if platform?('centos', 'redhat', 'fedora', 'amazon')
@@ -49,7 +63,7 @@ if platform?('centos', 'redhat', 'fedora', 'amazon')
     action :create
   end
 
-  remote_file '/usr/local/bin/apache2_module_conf_generate.pl' do
+  cookbook_file '/usr/local/bin/apache2_module_conf_generate.pl' do
     source 'apache2_module_conf_generate.pl'
     mode 0755
     owner 'root'
@@ -120,7 +134,7 @@ template 'apache2.conf' do
   owner 'root'
   group 'root'
   mode 0644
-  notifies :run, resources(:execute => 'logdir_existence_and_restart_apache2')
+  notifies :run, resources(:bash => 'logdir_existence_and_restart_apache2')
 end
 
 template 'security' do
@@ -130,7 +144,7 @@ template 'security' do
   group 'root'
   mode 0644
   backup false
-  notifies :run, resources(:execute => 'logdir_existence_and_restart_apache2')
+  notifies :run, resources(:bash => 'logdir_existence_and_restart_apache2')
 end
 
 template 'charset' do
@@ -140,7 +154,7 @@ template 'charset' do
   group 'root'
   mode 0644
   backup false
-  notifies :run, resources(:execute => 'logdir_existence_and_restart_apache2')
+  notifies :run, resources(:bash => 'logdir_existence_and_restart_apache2')
 end
 
 template "#{node[:apache][:dir]}/ports.conf" do
@@ -148,7 +162,7 @@ template "#{node[:apache][:dir]}/ports.conf" do
   group 'root'
   owner 'root'
   mode 0644
-  notifies :run, resources(:execute => 'logdir_existence_and_restart_apache2')
+  notifies :run, resources(:bash => 'logdir_existence_and_restart_apache2')
 end
 
 template "#{node[:apache][:dir]}/sites-available/default" do
@@ -156,7 +170,7 @@ template "#{node[:apache][:dir]}/sites-available/default" do
   owner 'root'
   group 'root'
   mode 0644
-  notifies :run, resources(:execute => 'logdir_existence_and_restart_apache2')
+  notifies :run, resources(:bash => 'logdir_existence_and_restart_apache2')
 end
 
 include_recipe 'apache2::mod_status'
@@ -182,7 +196,7 @@ include_recipe 'apache2::logrotate'
 # uncomment to get working example site on centos/redhat/fedora/amazon
 #apache_site 'default'
 
-execute 'logdir_existence_and_restart_apache2' do
+bash 'logdir_existence_and_restart_apache2' do
   action :run
 end
 

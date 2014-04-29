@@ -30,18 +30,20 @@ define :opsworks_deploy do
 
     if deploy[:scm][:scm_type].to_s == 'archive'
       repository = prepare_archive_checkouts(deploy[:scm])
-      deploy[:scm] = {
+      node.set[:deploy][application][:scm] = {
         :scm_type => 'git',
         :repository => repository
       }
     elsif deploy[:scm][:scm_type].to_s == 's3'
       repository = prepare_s3_checkouts(deploy[:scm])
-      deploy[:scm] = {
+      node.set[:deploy][application][:scm] = {
         :scm_type => 'git',
         :repository => repository
       }
     end
   end
+
+  deploy = node[:deploy][application]
 
   directory "#{deploy[:deploy_to]}/shared/cached-copy" do
     recursive true
@@ -61,13 +63,15 @@ define :opsworks_deploy do
   if deploy[:scm] && deploy[:scm][:scm_type] != 'other'
     Chef::Log.debug("Checking out source code of application #{application} with type #{deploy[:application_type]}")
     deploy deploy[:deploy_to] do
+      provider Chef::Provider::Deploy.const_get(deploy[:chef_provider])
+      keep_releases deploy[:keep_releases]
       repository deploy[:scm][:repository]
       user deploy[:user]
       group deploy[:group]
       revision deploy[:scm][:revision]
       migrate deploy[:migrate]
       migration_command deploy[:migrate_command]
-      environment deploy[:environment]
+      environment deploy[:environment].to_hash
       symlink_before_migrate( deploy[:symlink_before_migrate] )
       action deploy[:action]
 
@@ -98,7 +102,7 @@ define :opsworks_deploy do
             OpsWorks::RailsConfiguration.bundle(application, node[:deploy][application], release_path)
           end
 
-          node[:deploy][application][:database][:adapter] = OpsWorks::RailsConfiguration.determine_database_adapter(
+          node.default[:deploy][application][:database][:adapter] = OpsWorks::RailsConfiguration.determine_database_adapter(
             application,
             node[:deploy][application],
             release_path,
@@ -116,6 +120,10 @@ define :opsworks_deploy do
               :database => node[:deploy][application][:database],
               :environment => node[:deploy][application][:rails_env]
             )
+
+            only_if do
+              deploy[:database][:host].present?
+            end
           end.run_action(:create)
         elsif deploy[:application_type] == 'php'
           template "#{node[:deploy][application][:deploy_to]}/shared/config/opsworks.php" do
@@ -136,7 +144,7 @@ define :opsworks_deploy do
           end
         elsif deploy[:application_type] == 'nodejs'
           if deploy[:auto_npm_install_on_deploy]
-            OpsWorks::NodejsConfiguration.npm_install(application, node[:deploy][application], release_path)
+            OpsWorks::NodejsConfiguration.npm_install(application, node[:deploy][application], release_path, node[:opsworks_nodejs][:npm_install_options])
           end
         end
 

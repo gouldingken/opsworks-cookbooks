@@ -1,7 +1,4 @@
-# Load in memcached library
-OpsWorks::InternalGems.internal_gem_package "memcached"
-require 'memcached'
-
+# -*- coding: utf-8 -*-
 require 'minitest/spec'
 
 describe_recipe 'memcached::default' do

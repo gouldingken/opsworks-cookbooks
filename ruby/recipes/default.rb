@@ -29,7 +29,7 @@ when 'debian','ubuntu'
     end
   end
 
-  ['opsworks-ruby1.9','opsworks-ruby2.0','ruby-enterprise','ruby1.9','ruby2.0'].each do |pkg|
+  ['opsworks-ruby1.9','opsworks-ruby2.0','opsworks-ruby2.1','ruby-enterprise','ruby1.9','ruby2.0'].each do |pkg|
     package pkg do
       action :remove
       ignore_failure true
@@ -50,7 +50,7 @@ when 'centos','redhat','fedora','amazon'
     end
   end
 
-  ['opsworks-ruby19','opsworks-ruby20','ruby-enterprise','ruby19','ruby20'].each do |pkg|
+  ['opsworks-ruby19','opsworks-ruby20','opsworks-ruby21','ruby-enterprise','ruby19','ruby20'].each do |pkg|
     package pkg do
       action :remove
       ignore_failure true
@@ -79,12 +79,11 @@ execute "Install Ruby #{node[:ruby][:full_version]}" do
   end
 end
 
-execute 'Delete downloaded ruby packages' do
-  command "rm -vf /tmp/#{node[:ruby][:deb]} /tmp/#{node[:ruby][:rpm]}"
-  only_if do
-     ::File.exists?("/tmp/#{node[:ruby][:deb]}") ||
-     ::File.exists?("/tmp/#{node[:ruby][:rpm]}")
-   end
+# Delete downloaded ruby packages
+["/tmp/#{node[:ruby][:deb]}" "/tmp/#{node[:ruby][:rpm]}"].each do |package|
+  file package do
+    action :delete
+  end
 end
 
 include_recipe 'opsworks_rubygems'

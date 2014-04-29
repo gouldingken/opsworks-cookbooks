@@ -19,3 +19,4 @@ doc/
 
 #Jetbrains IDE
 .idea
+/Gemfile.lock

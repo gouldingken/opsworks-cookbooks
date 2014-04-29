@@ -1,3 +1,19 @@
+###
+# Do not use this file to override the opsworks_initial_setup cookbook's default
+# attributes.  Instead, please use the customize.rb attributes file,
+# which will keep your adjustments separate from the AWS OpsWorks
+# codebase and make it easier to upgrade.
+#
+# However, you should not edit customize.rb directly. Instead, create
+# "opsworks_initial_setup/attributes/customize.rb" in your cookbook repository and
+# put the overrides in YOUR customize.rb file.
+#
+# Do NOT create an 'opsworks_initial_setup/attributes/default.rb' in your cookbooks. Doing so
+# would completely override this file and might cause upgrade issues.
+#
+# See also: http://docs.aws.amazon.com/opsworks/latest/userguide/customizing.html
+###
+
 GC.disable unless node[:opsworks] && node[:opsworks][:instance] && node[:opsworks][:instance][:instance_type] == 't1.micro'
 
 include_attribute "opsworks_commons::default"
@@ -9,6 +25,13 @@ default[:opsworks_agent][:shared_dir] = '/var/lib/aws/opsworks'
 default[:opsworks_agent][:log_dir] = '/var/log/aws/opsworks'
 default[:opsworks_agent][:user] = 'aws'
 default[:opsworks_agent][:group] = 'aws'
+
+default[:opsworks][:ruby_stack] = 'ruby'
+default[:opsworks][:ruby_version] = '1.9.3'
+default[:opsworks][:run_cookbook_tests] = false
+
+default['opsworks_initial_setup']['swapfile_name'] = '/var/swapfile'
+default['opsworks_initial_setup']['swapfile_size_mb'] = 256
 
 default[:opsworks_initial_setup][:sysctl] = Mash.new
 default[:opsworks_initial_setup][:sysctl]['net.core.somaxconn'] = 1024           # 128
@@ -37,7 +60,10 @@ default[:opsworks_initial_setup][:limits][:msgqueue] = nil
 default[:opsworks_initial_setup][:limits][:nice] = nil
 default[:opsworks_initial_setup][:limits][:rtprio] = nil
 
+default[:opsworks_initial_setup][:yum_dump_file] = File.join(Chef::CHEF_ROOT, "chef", "provider", "package", "yum-dump.py")
 default[:opsworks_initial_setup][:yum_dump_lock_timeout] = 120
+
+default[:opsworks_initial_setup][:autofs_map_file] = "/etc/auto.opsworks"
 
 case node[:platform]
 when 'redhat','centos','fedora','amazon'
@@ -60,3 +86,5 @@ end
 
 # landscape removal
 default[:opsworks_initial_setup][:landscape][:packages_to_remove] = ['landscape-common', 'landscape-client']
+
+include_attribute "opsworks_initial_setup::customize"

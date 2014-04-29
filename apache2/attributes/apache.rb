@@ -7,9 +7,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,22 @@
 # limitations under the License.
 #
 
-# Where the various parts of apache are
+###
+# Do not use this file to override the apache2 cookbook's default
+# attributes.  Instead, please use the customize.rb attributes file,
+# which will keep your adjustments separate from the AWS OpsWorks
+# codebase and make it easier to upgrade.
+#
+# However, you should not edit customize.rb directly. Instead, create
+# "apache2/attributes/customize.rb" in your cookbook repository and
+# put the overrides in YOUR customize.rb file.
+#
+# Do NOT create an 'apache2/attributes/apache.rb' in your cookbooks. Doing so
+# would completely override this file and might cause upgrade issues.
+#
+# See also: http://docs.aws.amazon.com/opsworks/latest/userguide/customizing.html
+###
+
 case node[:platform]
 when 'redhat','centos','fedora','amazon'
   default[:apache][:dir]         = '/etc/httpd'
@@ -51,18 +66,24 @@ else
   raise 'Bailing out, unknown platform.'
 end
 
-###
-# These settings need the unless, since we want them to be tunable,
-# and we don't want to override the tunings.
-###
-
 # General settings
 default[:apache][:listen_ports] = [ '80','443' ]
 default[:apache][:contact] = 'ops@example.com'
+default[:apache][:log_level] = 'info'
 default[:apache][:timeout] = 120
 default[:apache][:keepalive] = 'Off'
 default[:apache][:keepaliverequests] = 100
 default[:apache][:keepalivetimeout] = 3
+default[:apache][:deflate_types] = ['application/javascript',
+                                    'application/json',
+                                    'application/x-javascript',
+                                    'application/xhtml+xml',
+                                    'application/xml',
+                                    'text/css',
+                                    'text/html',
+                                    'text/javascript',
+                                    'text/plain',
+                                    'text/xml']
 
 # Security
 default[:apache][:servertokens] = 'Prod'
@@ -93,3 +114,5 @@ default[:apache][:logrotate][:delaycompress] = true
 default[:apache][:logrotate][:mode] = '640'
 default[:apache][:logrotate][:owner] = 'root'
 default[:apache][:logrotate][:group] = 'adm'
+
+include_attribute 'apache2::customize'

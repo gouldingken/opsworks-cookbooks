@@ -9,7 +9,8 @@ node[:deploy].each do |application, deploy|
     action :nothing
   end
 
-  node[:deploy][application][:database][:adapter] = OpsWorks::RailsConfiguration.determine_database_adapter(application, node[:deploy][application], "#{node[:deploy][application][:deploy_to]}/current", :force => node[:force_database_adapter_detection])
+  node.default[:deploy][application][:database][:adapter] = OpsWorks::RailsConfiguration.determine_database_adapter(application, node[:deploy][application], "#{node[:deploy][application][:deploy_to]}/current", :force => node[:force_database_adapter_detection])
+  deploy = node[:deploy][application]
 
   template "#{deploy[:deploy_to]}/shared/config/database.yml" do
     source "database.yml.erb"
@@ -19,10 +20,10 @@ node[:deploy].each do |application, deploy|
     owner deploy[:user]
     variables(:database => deploy[:database], :environment => deploy[:rails_env])
 
-    notifies :run, resources(:execute => "restart Rails app #{application}")
+    notifies :run, "execute[restart Rails app #{application}]"
 
     only_if do
-      File.exists?("#{deploy[:deploy_to]}") && File.exists?("#{deploy[:deploy_to]}/shared/config/")
+      deploy[:database][:host].present? && File.directory?("#{deploy[:deploy_to]}/shared/config/")
     end
   end
 
@@ -37,10 +38,10 @@ node[:deploy].each do |application, deploy|
       :environment => deploy[:rails_env]
     )
 
-    notifies :run, resources(:execute => "restart Rails app #{application}")
+    notifies :run, "execute[restart Rails app #{application}]"
 
     only_if do
-      File.exists?("#{deploy[:deploy_to]}") && File.exists?("#{deploy[:deploy_to]}/shared/config/")
+      deploy[:memcached][:host].present? && File.directory?("#{deploy[:deploy_to]}/shared/config/")
     end
   end
 end
